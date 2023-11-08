@@ -11,6 +11,26 @@ Content-Type: application/json
 ### doe@acme info
 GET localhost:9000/api/emails/doe@acme.com
 
+### get workflow state
+GET localhost:9000/api/user-workflow/001
+
+################################################################################
+
+### create random invalid user
+POST localhost:9000/api/users/{{$random.uuid}}
+Content-Type: application/json
+
+{
+  "country": "Belgium",
+  "email": "invalid@acme.com"
+}
+
+
+### invalid@acme info
+GET localhost:9000/api/emails/invalid@acme.com
+
+################################################################################
+
 ### create user 002
 POST localhost:9000/api/users/002
 Content-Type: application/json
@@ -18,8 +38,18 @@ Content-Type: application/json
 {
   "name": "Anne Doe",
   "country": "Belgium",
-  "email": "doe@acme.com"
+  "email": "anne.doe@acme.com"
 }
+
+
+### get workflow state
+GET localhost:9000/api/user-workflow/002
+
+
+### anne.doe@acme info
+GET localhost:9000/api/emails/anne.doe@acme.com
+
+################################################################################
 
 ### change email 001
 PUT localhost:9000/api/users/001/change-email
@@ -31,7 +61,7 @@ Content-Type: application/json
 
 
 ### john.doe@acme info
-GET localhost:9000/api/emails/john.doe@acme.com
+GET localhost:9000/api/emails/doe@acme.com
 
 
 ### get user 001

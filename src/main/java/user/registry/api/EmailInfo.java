@@ -1,4 +1,4 @@
 package user.registry.api;
 
-public record EmailInfo(String value, String status, String owner) {
+public record EmailInfo(String address, String status, String owner) {
 }

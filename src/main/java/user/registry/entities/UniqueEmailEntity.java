@@ -1,7 +1,6 @@
 package user.registry.entities;
 
 
-import kalix.javasdk.StatusCode;
 import kalix.javasdk.annotations.Acl;
 import kalix.javasdk.annotations.Id;
 import kalix.javasdk.annotations.TypeId;
@@ -54,9 +53,6 @@ public class UniqueEmailEntity extends ValueEntity<UniqueEmailEntity.UniqueEmail
       return status == Status.NOT_USED;
     }
 
-    public boolean isReserved() {
-      return status == Status.RESERVED;
-    }
   }
 
   public record ReserveEmail(String address, String owner) {
@@ -68,7 +64,7 @@ public class UniqueEmailEntity extends ValueEntity<UniqueEmailEntity.UniqueEmail
       return effects().error("Email already reserved");
     }
 
-    logger.info("Reserving address '{}'", cmd.address());
+    logger.info("Reserving address: '{}'", cmd.address());
     return effects()
       .updateState(new UniqueEmail(cmd.address, Status.RESERVED, cmd.owner))
       .thenReply(Done.done());
@@ -84,7 +80,7 @@ public class UniqueEmailEntity extends ValueEntity<UniqueEmailEntity.UniqueEmail
       return effects().error("Email already confirmed");
     }
 
-    logger.info("Confirming address '{}'", currentState().address);
+    logger.info("Confirming address: '{}'", currentState().address);
     return effects()
       .updateState(currentState().asConfirmed())
       .thenReply(Done.done());
@@ -92,7 +88,7 @@ public class UniqueEmailEntity extends ValueEntity<UniqueEmailEntity.UniqueEmail
 
   @DeleteMapping()
   public Effect<Done> delete() {
-    logger.info("Deleting address '{}'", currentState().address);
+    logger.info("Deleting address: '{}'", currentState().address);
     return effects()
       .updateState(emptyState())
       .thenReply(Done.done());
