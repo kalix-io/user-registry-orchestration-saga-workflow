@@ -12,7 +12,7 @@ Content-Type: application/json
 GET localhost:9000/api/emails/doe@acme.com
 
 ### get workflow state
-GET localhost:9000/api/user-workflow/001
+GET localhost:9000/api/users/001/creation-workflow
 
 ################################################################################
 
@@ -43,7 +43,7 @@ Content-Type: application/json
 
 
 ### get workflow state
-GET localhost:9000/api/user-workflow/002
+GET localhost:9000/api/users/002/creation-workflow
 
 
 ### anne.doe@acme info
