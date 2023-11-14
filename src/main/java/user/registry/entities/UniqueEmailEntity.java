@@ -51,10 +51,6 @@ public class UniqueEmailEntity extends ValueEntity<UniqueEmailEntity.UniqueEmail
       return new UniqueEmail(address, Status.CONFIRMED, ownerId);
     }
 
-    public boolean isConfirmed() {
-      return status == Status.CONFIRMED;
-    }
-
     public boolean isInUse() {
       return status != Status.NOT_USED;
     }
