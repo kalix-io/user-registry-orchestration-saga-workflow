@@ -55,7 +55,7 @@ public class ApplicationController extends Action {
             new EmailInfo(
               email.address(),
               email.status().toString(),
-              email.owner());
+              email.ownerId());
 
           logger.info("Getting email info: {}", emailInfo);
           return emailInfo;

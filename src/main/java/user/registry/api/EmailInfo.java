@@ -1,4 +1,6 @@
 package user.registry.api;
 
-public record EmailInfo(String address, String status, String owner) {
+import java.util.Optional;
+
+public record EmailInfo(String address, String status, Optional<String> ownerId) {
 }

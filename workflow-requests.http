@@ -38,7 +38,7 @@ Content-Type: application/json
 {
   "name": "Anne Doe",
   "country": "Belgium",
-  "email": "anne.doe@acme.com"
+  "email": "doe@acme.com"
 }
 
 
