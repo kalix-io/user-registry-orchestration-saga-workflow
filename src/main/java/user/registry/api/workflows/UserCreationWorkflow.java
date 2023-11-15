@@ -29,11 +29,11 @@ public class UserCreationWorkflow extends Workflow<UserCreationWorkflow.State> {
   }
 
   public enum Status {
-    INITIATED,
-    EMAIL_RESERVED,
-    USER_CREATED,
-    EMAIL_CONFIRMED,
-    FAILING,
+    RESERVING_EMAIL,
+    CREATING_USER,
+    CONFIRMING_EMAIL,
+    FINISHED,
+    PAUSED,
     FAILED;
   }
 
@@ -47,7 +47,7 @@ public class UserCreationWorkflow extends Workflow<UserCreationWorkflow.State> {
     }
 
     public State withErrorMessage(String errorMessage) {
-      return new State(userId, createCmd, Status.FAILING, Optional.of(errorMessage));
+      return new State(userId, createCmd, status, Optional.of(errorMessage));
     }
 
   }
@@ -59,16 +59,20 @@ public class UserCreationWorkflow extends Workflow<UserCreationWorkflow.State> {
 
   @PostMapping("/users/{userId}")
   public Effect<State> start(@PathVariable String userId, @RequestBody UserEntity.Create cmd) {
+    if (currentState() == null) {
     logger.info("Starting workflow (id:{})", commandContext().workflowId());
 
-    var state = new State(userId, cmd, Status.INITIATED, Optional.empty());
+    var state = new State(userId, cmd, Status.RESERVING_EMAIL, Optional.empty());
 
     return effects()
       .updateState(state)
       .transitionTo("reserve-email", new UniqueEmailEntity.ReserveEmail(cmd.email(), userId))
       .thenReply(state);
+    } else {
+      logger.info("Workflow already started (id:{})", commandContext().workflowId());
+      return effects().reply(currentState());
+    }
   }
-
 
   @Override
   public WorkflowDef<State> definition() {
@@ -90,7 +94,7 @@ public class UserCreationWorkflow extends Workflow<UserCreationWorkflow.State> {
           Done.class,
           __ ->
             effects()
-              .updateState(currentState().withStatus(Status.EMAIL_CONFIRMED))
+              .updateState(currentState().withStatus(Status.FINISHED))
               .end());
 
     //---------------------------------------------------------------------------------------------
@@ -110,7 +114,7 @@ public class UserCreationWorkflow extends Workflow<UserCreationWorkflow.State> {
         .andThen(
           Done.class,
           __ -> effects()
-            .updateState(currentState().withStatus(Status.USER_CREATED))
+            .updateState(currentState().withStatus(Status.CONFIRMING_EMAIL))
             .transitionTo(confirmEmail.name()));
 
 
@@ -136,24 +140,27 @@ public class UserCreationWorkflow extends Workflow<UserCreationWorkflow.State> {
             if (result instanceof Result.Failure failure) {
               logger.error("step[{}]: failed to reserve email: '{}'", reserveEmailStepName, currentState().createCmd().email());
               return effects()
-                .updateState(currentState().withErrorMessage(failure.message()))
+                .updateState(
+                  currentState()
+                    .withStatus(Status.PAUSED)
+                    .withErrorMessage(failure.message()))
                 .pause();
             } else {
               logger.info("step[{}]: email '{}' reserved", reserveEmailStepName, currentState().createCmd().email());
               return effects()
-                .updateState(currentState().withStatus(Status.EMAIL_RESERVED))
+                .updateState(currentState().withStatus(Status.CREATING_USER))
                 .transitionTo(createUser.name(), currentState().createCmd());
             }
           });
 
     //---------------------------------------------------------------------------------------------
     // this is a failover step, it will be executed if we fail to create the user
-    var deleteEmailReservationStepName = "delete-reservation-email";
-    var deleteReservation =
-      step(deleteEmailReservationStepName)
+    var unReserveEmailStepName = "un-reserve-email";
+    var unReserveEmail =
+      step(unReserveEmailStepName)
         .call(
           () -> {
-            logger.info("step[{}]: deleting email reservation: '{}'", deleteEmailReservationStepName, currentState().createCmd().email());
+            logger.info("step[{}]: deleting email reservation: '{}'", unReserveEmailStepName, currentState().createCmd().email());
             return componentClient
               .forValueEntity(currentState().createCmd().email())
               .call(UniqueEmailEntity::unReserve);
@@ -162,14 +169,16 @@ public class UserCreationWorkflow extends Workflow<UserCreationWorkflow.State> {
         // once email reservation is deleted, we can stop the workflow
         .andThen(Done.class, __ ->
           effects()
-            .updateState(currentState().withStatus(Status.FAILED))
+            .updateState(currentState()
+              .withErrorMessage("failed to create user")
+              .withStatus(Status.FAILED))
             .end());
 
 
     return workflow()
       .addStep(reserveEmail)
-      .addStep(deleteReservation)
-      .addStep(createUser, maxRetries(3).failoverTo(deleteReservation.name()))
+      .addStep(unReserveEmail)
+      .addStep(createUser, maxRetries(3).failoverTo(unReserveEmail.name()))
       .addStep(confirmEmail);
   }
 
