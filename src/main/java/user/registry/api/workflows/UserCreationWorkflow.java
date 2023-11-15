@@ -59,15 +59,16 @@ public class UserCreationWorkflow extends Workflow<UserCreationWorkflow.State> {
 
   @PostMapping("/users/{userId}")
   public Effect<State> start(@PathVariable String userId, @RequestBody UserEntity.Create cmd) {
-    if (currentState() == null) {
-    logger.info("Starting workflow (id:{})", commandContext().workflowId());
 
-    var state = new State(userId, cmd, Status.RESERVING_EMAIL, Optional.empty());
+    if (currentState() == null || currentState().status() == Status.PAUSED) {
+      var label = currentState() == null ? "Starting" : "Resuming";
+      logger.info("{} workflow (id:{})", label, commandContext().workflowId());
 
-    return effects()
-      .updateState(state)
-      .transitionTo("reserve-email", new UniqueEmailEntity.ReserveEmail(cmd.email(), userId))
-      .thenReply(state);
+      var state = new State(userId, cmd, Status.RESERVING_EMAIL, Optional.empty());
+      return effects()
+        .updateState(state)
+        .transitionTo("reserve-email", new UniqueEmailEntity.ReserveEmail(cmd.email(), userId))
+        .thenReply(state);
     } else {
       logger.info("Workflow already started (id:{})", commandContext().workflowId());
       return effects().reply(currentState());
