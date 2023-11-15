@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import user.registry.Done;
 
+import java.util.Random;
+
 @Id("id")
 @TypeId("user")
 @RequestMapping("/users/{id}")
@@ -60,9 +62,29 @@ public class UserEntity extends EventSourcedEntity<UserEntity.User, UserEntity.E
     }
   }
 
+  /**
+   * Hidden gem to allows us to simulate random failures.
+   * If user ID is a negative integer, we randomly let it fail.
+   */
+  private boolean randomFailure() {
+    try {
+      var i = Integer.parseInt(commandContext().entityId());
+      var random = new Random();
+      return i < 0 && random.nextBoolean();
+    } catch (NumberFormatException e) {
+      // never fail if chosen ID is not a number
+      return false;
+    }
+  }
+
 
   @PostMapping
   public Effect<Done> createUser(@RequestBody Create cmd) {
+
+    // forces some random failures for demo
+    if (randomFailure()) {
+      return effects().error("Random failure", StatusCode.ErrorCode.BAD_REQUEST);
+    }
 
     if (cmd.name() == null) {
       return effects().error("Name is empty", StatusCode.ErrorCode.BAD_REQUEST);

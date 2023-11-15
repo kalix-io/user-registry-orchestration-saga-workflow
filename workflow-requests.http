@@ -16,7 +16,7 @@ GET localhost:9000/api/users/001/creation-workflow
 
 ################################################################################
 
-### create random invalid user
+### create invalid user
 POST localhost:9000/api/users/invalid-001
 Content-Type: application/json
 
@@ -32,6 +32,21 @@ GET localhost:9000/api/emails/invalid@acme.com
 
 ### get workflow state
 GET localhost:9000/api/users/invalid-001/creation-workflow
+################################################################################
+
+### create randon users
+# creation of users with negative ids may randonly fail
+POST localhost:9000/api/users/{{$random.integer(-100, -1)}}
+Content-Type: application/json
+
+{
+  "name": "Random Doe",
+  "country": "Belgium",
+  "email": "{{$random.uuid}}@acme.com"
+}
+
+### get workflow state
+GET localhost:9000/api/users/-81/creation-workflow
 ################################################################################
 
 ### create user 002

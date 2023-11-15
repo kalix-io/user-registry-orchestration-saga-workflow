@@ -102,13 +102,13 @@ public class UserCreationWorkflow extends Workflow<UserCreationWorkflow.State> {
     var createUserStepName = "create-user";
     var createUser =
       step(createUserStepName)
-        .asyncCall(
+        .call(
           UserEntity.Create.class,
           cmd -> {
             logger.info("step[{}]: creating user: {}", createUserStepName, cmd);
             return componentClient
               .forEventSourcedEntity(currentState().userId)
-              .call(UserEntity::createUser).params(cmd).execute();
+              .call(UserEntity::createUser).params(cmd);
           }
         )
         // when done, move to email confirmation
